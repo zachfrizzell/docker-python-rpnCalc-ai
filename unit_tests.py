@@ -5,7 +5,7 @@ from app import(
   calculate_rpn_method
   
 )
-from ai_rpn_calculator import InvalidRPNString
+from app import InvalidRPNString
 
 
 # Assuming calculate_rpn_method is implemented like in previous messages
