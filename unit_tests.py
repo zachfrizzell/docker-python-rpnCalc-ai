@@ -1,73 +1,148 @@
+#test_ai_rpn_calculator
+
 import unittest
-from app import app, db, Todo 
+from ai_rpn_calculator import(
+  calculate_rpn_method
+  
+)
+from ai_rpn_calculator import InvalidRPNString
 
-class TodoTestCase(unittest.TestCase):
 
-    def setUp(self):
-        # Configure the app for testing
-        app.config['TESTING'] = True
-        # Use an in-memory SQLite database for tests
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        # Create the test client
-        self.app = app.test_client()
-        # Push the application context and create all tables
-        self.ctx = app.app_context()
-        self.ctx.push()
-        db.create_all()
+# Assuming calculate_rpn_method is implemented like in previous messages
+# from your_rpn_module import calculate_rpn_method, InvalidRPNString
 
-    def tearDown(self):
-        # Cleanup the database and remove the app context
-        db.session.remove()
-        db.drop_all()
-        self.ctx.pop()
+class CalculateRPNTest(unittest.TestCase):
 
-    def test_home(self):
-        # Test that the home route ("/") returns a 200 OK status code.
-        response = self.app.get("/")
-        self.assertEqual(response.status_code, 200)
-        # Optionally, check for expected content in the rendered template.
-        self.assertIn(b"Todo", response.data)
+    # === BASIC FUNCTIONALITY TESTS ===
+    #Test
+    def test_addition_string(self):
+        result = calculate_rpn_method("2 2 +")
+        self.assertAlmostEqual(result, 4.0, places=2)
 
-    def test_add_todo(self):
-        # Test posting a new todo item using the "/add" route.
-        response = self.app.post("/add", data={"title": "Test Todo"}, follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-        # Verify that the new todo has been added to the database.
-        todo = Todo.query.filter_by(title="Test Todo").first()
-        self.assertIsNotNone(todo)
-        self.assertFalse(todo.complete)
+    def test_subtraction(self):
+        result = calculate_rpn_method("2 2 -")
+        self.assertAlmostEqual(result, 0.0, places=2)
 
-    def test_update_todo(self):
-        # Manually add a todo item to update.
-        todo = Todo(title="Update Test", complete=False)
-        db.session.add(todo)
-        db.session.commit()
-        todo_id = todo.id
+    def test_multiplication(self):
+        result = calculate_rpn_method("2 2 *")
+        self.assertAlmostEqual(result, 4.0, places=2)
 
-        # Toggle its 'complete' value by accessing the update route.
-        response = self.app.get(f"/update/{todo_id}", follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-        # Use Session.get() instead of Query.get()
-        updated_todo = db.session.get(Todo, todo_id)
-        self.assertTrue(updated_todo.complete)
+    def test_division(self):
+        result = calculate_rpn_method("2 2 /")
+        self.assertAlmostEqual(result, 1.0, places=2)
 
-    def test_delete_todo(self):
-        # Manually add a todo item to delete.
-        todo = Todo(title="Delete Test", complete=False)
-        db.session.add(todo)
-        db.session.commit()
-        todo_id = todo.id
+    # === ERROR HANDLING TESTS ===
 
-        # Delete the todo using the delete route.
-        response = self.app.get(f"/delete/{todo_id}", follow_redirects=True)
-        self.assertEqual(response.status_code, 200)
-        # Use Session.get() instead of Query.get()
-        deleted_todo = db.session.get(Todo, todo_id)
-        self.assertIsNone(deleted_todo)
+    def test_divide_by_zero(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("2 0 /")
+        self.assertEqual(str(context.exception), "cannot divide by 0")
 
-    # def test_failure(self):
-    #     # Simulate a failure case
-    #     self.assertFalse(True, "This test should fail.")
+    def test_not_enough_numbers(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("2 2 2 + - *")
+        self.assertEqual(str(context.exception), "too few arguments")
+
+    def test_too_many_numbers(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("3 2 2 + - 5")
+        self.assertEqual(str(context.exception), "too many arguments")
+
+    def test_invalid_character(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("2 2 a +")
+        self.assertEqual(str(context.exception), "invalid character")
+
+    def test_empty_string(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("")
+        self.assertEqual(str(context.exception), "empty")
+
+    def test_multiple_operand_rpn_string(self):
+        result = calculate_rpn_method("2 3 4 + *")
+        self.assertAlmostEqual(result, 14.0, places=2)
+
+    # === ADVANCED AND EDGE CASES ===
+
+    def test_floating_point_addition(self):
+        result = calculate_rpn_method("3.5 2.2 +")
+        self.assertAlmostEqual(result, 5.7, places=2)
+
+    def test_long_rpn_expression(self):
+        result = calculate_rpn_method("1 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 +")
+        self.assertAlmostEqual(result, 45.0, places=2)
+
+    def test_negative_numbers(self):
+        result = calculate_rpn_method("-2 4 *")
+        self.assertAlmostEqual(result, -8.0, places=2)
+
+    def test_irregular_whitespace(self):
+        result = calculate_rpn_method("2    3\t+")
+        self.assertAlmostEqual(result, 5.0, places=2)
+
+    def test_unsupported_operator(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("4 2 %")
+        self.assertEqual(str(context.exception), "invalid character")
+
+    def test_consecutive_operators(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("2 + +")
+        self.assertEqual(str(context.exception), "too few arguments")
+
+    def test_negative_zero_division(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("2 -0 /")
+        self.assertEqual(str(context.exception), "cannot divide by 0")
+
+    def test_garbage_input(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("banana 3 +")
+        self.assertEqual(str(context.exception), "invalid character")
+
+    def test_deep_nested_expression(self):
+        result = calculate_rpn_method("5 1 2 + 4 * + 3 -")
+        self.assertAlmostEqual(result, 14.0, places=2)
+
+    def test_multiple_sequential_calculations(self):
+        result1 = calculate_rpn_method("3 4 +")
+        result2 = calculate_rpn_method("5 6 +")
+        self.assertAlmostEqual(result1, 7.0, places=2)
+        self.assertAlmostEqual(result2, 11.0, places=2)
+
+    def test_numerical_overflow(self):
+       with self.assertRaises(InvalidRPNString) as context:
+          calculate_rpn_method("1e308 1e308 +")
+       self.assertEqual(str(context.exception), "numerical overflow or invalid result")
+
+    def test_rpn_expression_too_long(self):
+       long_expression = "1 " * 1001 + "+ " * 1000  # 2001 tokens
+       with self.assertRaises(InvalidRPNString) as context:
+          calculate_rpn_method(long_expression.strip())
+       self.assertEqual(str(context.exception), "input too long")
+
+    def test_whitespace_only_string(self):
+       with self.assertRaises(InvalidRPNString) as context:
+          calculate_rpn_method("      \t\n  ")
+       self.assertEqual(str(context.exception), "empty")
+
+    def test_single_number_input(self):
+       with self.assertRaises(InvalidRPNString) as context:
+          calculate_rpn_method("5")
+       self.assertEqual(str(context.exception), "too many arguments")
+
+    def test_single_operator_input(self):
+       with self.assertRaises(InvalidRPNString) as context:
+          calculate_rpn_method("+")
+       self.assertEqual(str(context.exception), "too few arguments")
+
+    def test_leading_trailing_spaces(self):
+       result = calculate_rpn_method("   3 4 +   ")
+       self.assertEqual(result, 7.0)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
+
