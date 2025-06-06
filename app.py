@@ -1,56 +1,67 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
+# rpn_calculator
 
-app = Flask(__name__)
+import math
 
-# /// = relative path, //// = absolute path
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# custom error to raise
+class InvalidRPNString(Exception):
+    pass
 
+def calculate_rpn_method(input_string: str) -> float:
+    # trim whitespace and check if input is empty
+    if input_string.strip() == "":
+        raise InvalidRPNString("empty")
 
-class Todo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100))
-    complete = db.Column(db.Boolean)
+    # limit input size to avoid excessive processing
+    MAX_CHARS = 1000
+    characters = input_string.split()
 
+    if len(characters) > MAX_CHARS:
+        raise InvalidRPNString("input too long")
 
-@app.route("/")
-def home():
-    todo_list = Todo.query.all()
-    return render_template("base.html", todo_list=todo_list)
+    # stack to hold numbers during calculation
+    rpn_stack = []
 
+    # go through each character (could be a number or operator)
+    for char in characters:
+        try:
+            # try converting character to a number
+            num = float(char)
+            rpn_stack.append(num)
+        except ValueError:
+            # if it's not a number, check if it's a valid operator
+            if char not in "+-*/":
+                raise InvalidRPNString("invalid character")
 
-@app.route("/add", methods=["POST"])
-def add():
-    title = request.form.get("title")
-    new_todo = Todo(title=title, complete=False)
-    db.session.add(new_todo)
-    db.session.commit()
-    return redirect(url_for("home"))
+            # need at least 2 numbers to do an operation
+            if len(rpn_stack) < 2:
+                raise InvalidRPNString("too few arguments")
 
+            # pop the last two numbers from the stack
+            b = rpn_stack.pop()
+            a = rpn_stack.pop()
 
-@app.route("/update/<int:todo_id>")
-def update(todo_id):
-    todo = Todo.query.filter_by(id=todo_id).first()
-    todo.complete = not todo.complete
-    db.session.commit()
-    return redirect(url_for("home"))
+            # do the math
+            if char == '+':
+                result = a + b
+            elif char == '-':
+                result = a - b
+            elif char == '*':
+                result = a * b
+            elif char == '/':
+                if b == 0:
+                    raise InvalidRPNString("cannot divide by 0")
+                result = a / b
 
+            # make sure result isn’t infinite or nan
+            if math.isinf(result) or math.isnan(result):
+                raise InvalidRPNString("numerical overflow or invalid result")
 
-@app.route("/delete/<int:todo_id>")
-def delete(todo_id):
-    todo = Todo.query.filter_by(id=todo_id).first()
-    db.session.delete(todo)
-    db.session.commit()
-    return redirect(url_for("home"))
+            # push the result back on the stack
+            rpn_stack.append(result)
 
+    # make sure there is only one result
+    if len(rpn_stack) != 1:
+        raise InvalidRPNString("too many arguments")
 
-@app.cli.command("init_db")
-def init_db():
-    """Initialize the database."""
-    db.create_all()
-    print("Initialized the database.")
+    return rpn_stack.pop()
 
-if __name__ == "__main__":
-    app.run(debug=True)
