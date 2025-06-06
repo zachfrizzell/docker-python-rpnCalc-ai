@@ -1,7 +1,7 @@
 #test_ai_rpn_calculator
 
 import unittest
-from ai_rpn_calculator import(
+from rpn_calculator import(
   calculate_rpn_method
   
 )
