@@ -1,4 +1,4 @@
-
+# app.py
 import math
 
 # custom error to raise
@@ -6,76 +6,74 @@ class InvalidRPNString(Exception):
     pass
 
 def calculate_rpn_method(input_string: str) -> float:
-    if not input_string:
+    # Check if input is empty
+    if not input_string.strip():
         raise InvalidRPNString("empty")
+
+    MAX_CHARS = 1000
+    characters = input_string.split()
     
-    # Split into tokens and check length
-    tokens = input_string.split()
-    if len(tokens) > 1000:
+    # Check if input is too long
+    if len(characters) > MAX_CHARS:
         raise InvalidRPNString("input too long")
-    
-    # Stack to hold numbers during calculation
+
+    # stack to hold numbers during calculation
     rpn_stack = []
-    
-    # Supported operators
+
+    # supported operators
     valid_operators = "+-*/^%"
-    
-    # Go through each token
-    for token in tokens:
-        # Check if it's an operator
-        if token in valid_operators:
-            # Need at least two numbers on the stack for an operation
+
+    # go through each character (could be a number or operator)
+    for char in characters:
+        if char in valid_operators:
             if len(rpn_stack) < 2:
                 raise InvalidRPNString("too few arguments")
-            
-            # Pop the last two numbers from the stack
+
+            # pop the last two numbers from the stack
             b = rpn_stack.pop()
             a = rpn_stack.pop()
-            
-            # Perform the operation
-            if token == '+':
+
+            # do the math
+            if char == '+':
                 result = a + b
-            elif token == '-':
+            elif char == '-':
                 result = a - b
-            elif token == '*':
+            elif char == '*':
                 result = a * b
-            elif token == '/':
+            elif char == '/':
                 if b == 0:
                     raise InvalidRPNString("cannot divide by 0")
                 result = a / b
-            elif token == '^':
+            elif char == '^':
                 try:
-                    result = math.pow(a, b)
+                    result = a ** b
                     if math.isinf(result) or math.isnan(result):
                         raise InvalidRPNString("numerical overflow or invalid result")
                 except (OverflowError, ValueError):
                     raise InvalidRPNString("invalid power operation")
-            elif token == '%':
+            elif char == '%':
                 if b == 0:
                     raise InvalidRPNString("cannot modulo by 0")
                 result = a % b
             
-            # Push the result back to the stack
             rpn_stack.append(result)
         else:
-            # Try to convert to float
+            # Try to convert to number
             try:
-                num = float(token)
+                num = float(char)
                 rpn_stack.append(num)
             except ValueError:
                 raise InvalidRPNString("invalid character")
-    
-    # After processing all tokens, we should have exactly one result
-    if len(rpn_stack) == 0:
-        raise InvalidRPNString("too few arguments")
-    elif len(rpn_stack) > 1:
+
+    # Check if there are too many arguments
+    if len(rpn_stack) != 1:
         raise InvalidRPNString("too many arguments")
     
     # Get the final result
-    final_result = rpn_stack.pop()
+    result = rpn_stack.pop()
     
     # Check for inf or nan
-    if math.isinf(final_result) or math.isnan(final_result):
+    if math.isinf(result) or math.isnan(result):
         raise InvalidRPNString("numerical overflow or invalid result")
-    
-    return final_result
+        
+    return result
