@@ -1,4 +1,4 @@
-#test_ai_rpn_calculator
+#test_rpn_calculator
 
 import unittest
 from app import(
@@ -8,13 +8,8 @@ from app import(
 from app import InvalidRPNString
 
 
-# Assuming calculate_rpn_method is implemented like in previous messages
-# from your_rpn_module import calculate_rpn_method, InvalidRPNString
-
 class CalculateRPNTest(unittest.TestCase):
 
-    # === BASIC FUNCTIONALITY TESTS ===
-    #Test
     def test_addition_string(self):
         result = calculate_rpn_method("2 2 +")
         self.assertAlmostEqual(result, 4.0, places=2)
@@ -30,8 +25,6 @@ class CalculateRPNTest(unittest.TestCase):
     def test_division(self):
         result = calculate_rpn_method("2 2 /")
         self.assertAlmostEqual(result, 1.0, places=2)
-
-    # === ERROR HANDLING TESTS ===
 
     def test_divide_by_zero(self):
         with self.assertRaises(InvalidRPNString) as context:
@@ -62,8 +55,6 @@ class CalculateRPNTest(unittest.TestCase):
         result = calculate_rpn_method("2 3 4 + *")
         self.assertAlmostEqual(result, 14.0, places=2)
 
-    # === ADVANCED AND EDGE CASES ===
-
     def test_floating_point_addition(self):
         result = calculate_rpn_method("3.5 2.2 +")
         self.assertAlmostEqual(result, 5.7, places=2)
@@ -80,10 +71,7 @@ class CalculateRPNTest(unittest.TestCase):
         result = calculate_rpn_method("2    3\t+")
         self.assertAlmostEqual(result, 5.0, places=2)
 
-    def test_unsupported_operator(self):
-        with self.assertRaises(InvalidRPNString) as context:
-            calculate_rpn_method("4 2 %")
-        self.assertEqual(str(context.exception), "invalid character")
+    
 
     def test_consecutive_operators(self):
         with self.assertRaises(InvalidRPNString) as context:
@@ -127,9 +115,8 @@ class CalculateRPNTest(unittest.TestCase):
        self.assertEqual(str(context.exception), "empty")
 
     def test_single_number_input(self):
-       with self.assertRaises(InvalidRPNString) as context:
-          calculate_rpn_method("5")
-       self.assertEqual(str(context.exception), "too many arguments")
+       result = calculate_rpn_method("5")
+       self.assertEqual(result, 5.0)
 
     def test_single_operator_input(self):
        with self.assertRaises(InvalidRPNString) as context:
@@ -141,8 +128,78 @@ class CalculateRPNTest(unittest.TestCase):
        self.assertEqual(result, 7.0)
 
 
+    def test_power_positive_exponent(self):
+        result = calculate_rpn_method("2 3 ^")
+        self.assertEqual(result, 8.0)
+
+    def test_power_zero_exponent(self):
+        result = calculate_rpn_method("5 0 ^")
+        self.assertEqual(result, 1.0)
+
+    def test_power_zero_base(self):
+        result = calculate_rpn_method("0 5 ^")
+        self.assertEqual(result, 0.0)
+
+    def test_power_negative_exponent(self):
+        result = calculate_rpn_method("2 -2 ^")
+        self.assertEqual(result, 0.25)
+
+    def test_mixed_arithmetic_with_power_and_division(self):
+    
+       result = calculate_rpn_method("3 2 + 4 * 2 2 ^ /")
+       self.assertEqual(result, 5.0)
+
+    def test_power_modulus_addition(self):
+    
+       result = calculate_rpn_method("2 3 ^ 5 % 1 +")
+       self.assertEqual(result, 4.0)
+
+    def test_full_operator_chain(self):
+   
+       result = calculate_rpn_method("10 3 % 2 + 5 3 - 2 ^ *")
+       self.assertEqual(result, 12.0)
+
+    def test_power_zero_base(self):
+        self.assertEqual(calculate_rpn_method("0 5 ^"), 0.0)
+
+    def test_power_zero_exponent(self):
+        self.assertEqual(calculate_rpn_method("5 0 ^"), 1.0)
+
+    def test_modulus_zero_result(self):
+        self.assertEqual(calculate_rpn_method("9 3 %"), 0.0)
+
+    def test_modulus_by_zero_raises(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("10 0 %")
+        self.assertEqual(str(context.exception), "cannot modulo by 0")
+
+    def test_negative_base_fractional_exponent_raises(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("-2 0.5 ^")
+        self.assertEqual(str(context.exception), "invalid power operation")
+
+    def test_large_power_overflow_raises(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("99 130 ^")
+        self.assertEqual(str(context.exception), "numerical overflow or invalid result")
+
+    def test_operator_with_no_operands(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("^")
+        self.assertEqual(str(context.exception), "too few arguments")
+
+    def test_only_one_operand_then_operator(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("5 ^")
+        self.assertEqual(str(context.exception), "too few arguments")
+
+    def test_extra_values_left_on_stack(self):
+        with self.assertRaises(InvalidRPNString) as context:
+            calculate_rpn_method("3 4 + 2")
+        self.assertEqual(str(context.exception), "too many arguments")
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
